@@ -1,12 +1,12 @@
-== Generate Sitemap Rake Task ==
+## Generate Sitemap Rake Task ##
 
 This is a small rake task that will crawl a static site locally in the specific directory and generate a sitemap.xml file with a list of links, optionally compressing it.
 
-== Installation ==
+## Installation ##
 
   gem install static_sitemap_tasks
 
-== Configuration/Usage ==
+## Configuration/Usage ##
 To use, require the gem in your Rakefile and install the task with configuration
   require 'static_sitemap_tasks'
 
@@ -21,11 +21,11 @@ To use, require the gem in your Rakefile and install the task with configuration
 To execute,
   rake generate_sitemap
 
-== More Info
+## More Info ##
 
 http://www.sitemaps.org/protocol.php
 
-== Credits
+## Credits ##
 
 Originally Authored by Chris Marting (http://chriscodes.com/articles/view/54)
 Updates by Tom Cocca
