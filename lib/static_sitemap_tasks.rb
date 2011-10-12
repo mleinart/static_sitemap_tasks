@@ -105,6 +105,8 @@ module SitemapGenerator
     end
 
     def resolve_file_path(path)
+      file_path = nil
+
       if File.directory?(path)
         @index_files.each do |f|
           index_file = File.join(path,f)
