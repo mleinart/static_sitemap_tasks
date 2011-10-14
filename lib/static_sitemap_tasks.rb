@@ -79,8 +79,10 @@ module SitemapGenerator
     def find_date(file)
       case @date_mode
       when 'git'
-        date = %x[git log -n 1 --date=iso --format="%ad" #{file}]
-        date.strip()
+        raw_date = %x[git log -n 1 --date=iso --format="%ad" #{file}]
+        raw_date.strip!()
+        # we need ISO with no spaces
+        Time.new(raw_date).iso8601 rescue nil
       when 'mtime'
         mtime = File.mtime(file) rescue nil
         mtime.iso8601 if mtime
@@ -105,7 +107,9 @@ module SitemapGenerator
       xml = Builder::XmlMarkup.new( :indent => 2 )
       xml.instruct!
       xml.comment! "Generated on: " + Time.now.to_s
-      xml.urlset("xmlns" => "http://www.sitemaps.org/schemas/sitemap/0.9") {
+      xml.urlset("xmlns:xsi" => "http://www.w3.org/2001/XMLSchema-instance",
+                 "xsi:schemaLocation" => "http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd",
+                 "xmlns" => "http://www.sitemaps.org/schemas/sitemap/0.9") {
         # loop through array of pages, and build sitemap.xml
         @pages.sort.each {|link|
           xml.url {
