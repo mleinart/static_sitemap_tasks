@@ -1,0 +1,4 @@
+v0.1
+ * Initial fork from https://github.com/tcocca/generate_sitemap
+ * Refactor to scan local directory
+ * Refactor to set config items on rake task install
