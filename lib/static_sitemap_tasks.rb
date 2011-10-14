@@ -1,6 +1,8 @@
 require 'rubygems'
 require 'builder'
 require 'hpricot'
+require 'time'
+require 'cgi'
 require 'uri'
 
 
@@ -14,22 +16,74 @@ module SitemapGenerator
     end
 
     def initialize(options = {})
-      # Root of files to crawl
-      @public_root = options[:public_root] || Dir.pwd
-      # Change frequency - see: http://www.sitemaps.org/protocol.php#changefreqdef
-      @change_frequency = options[:change_frequency]
       # Canonical domain of published site
       @base_url = options[:base_url]
-      # Index pages
-      @index_files = options[:index_files] || [ 'index.html', 'index.htm' ]
+      # Change frequency - see: http://www.sitemaps.org/protocol.php#changefreqdef
+      @change_frequency = options[:change_frequency]
+      # Date mode - one of [ 'git', 'mtime' ]
+      @date_mode = options[:date_mode]
       # Compress output to sitemap.xml.gz
       @gzip_output = options[:gzip_output] || true
+      # Index pages
+      @index_files = options[:index_files] || [ 'index.html', 'index.htm' ]
+      # Root of files to crawl
+      @public_root = options[:public_root] || Dir.pwd
     end
 
     def install
-      desc "Generate a sitemap based on the contents of #{@public_root}"
-      task 'generate_sitemap' do
-        generate_sitemap
+      namespace :sitemap do
+        desc "Generate a sitemap based on the contents of #{@public_root}"
+        task :generate do
+          generate_sitemap
+        end
+
+        desc "Ping providers to notify them that a new sitemap.xml is available"
+        task :ping do
+          ping_search_engines
+        end
+      end
+    end
+
+    # uses Hpricot to grab links from a URI
+    # adds uri to @pages_crawled
+    # loops each link found
+    # adds link to pages array if it should be included, unless it already exists
+    def crawl_for_links(link)
+      if link.include?('http')
+        return unless link_path.include?(@base_url)
+        link_path = link.sub!(@base_url,'')
+      else
+        link_path = link
+      end
+      file_path = resolve_file_path(File.join(@public_root, link_path))
+
+      if file_path.nil?
+        puts "Warning: Unable to resolve #{link_path} to a local file"
+        return
+      end
+
+      puts "Inspecting #{file_path}...\n"
+      doc = Hpricot(open(file_path)) rescue nil
+      return unless doc
+      @pages_crawled << link
+      last_updated = find_date(file_path)
+      @page_times[link] = last_updated if last_updated
+
+      (doc/"a").each do |a|
+        if a['href'] && should_be_included?(a['href'])
+          @pages << a['href'] unless(link_exists?(a['href'],@pages))
+        end
+      end
+    end
+
+    def find_date(file)
+      case @date_mode
+      when 'git'
+        date = %x[git log -n 1 --date=iso --format="%ad" #{file}]
+        date.strip()
+      when 'mtime'
+        mtime = File.mtime(file) rescue nil
+        mtime.iso8601 if mtime
       end
     end
 
@@ -37,6 +91,7 @@ module SitemapGenerator
       # holds pages to go into map, and pages crawled
       @pages = []
       @pages_crawled = []
+      @page_times = {}
 
       # start with index pages
       crawl_for_links('/')
@@ -54,9 +109,10 @@ module SitemapGenerator
         # loop through array of pages, and build sitemap.xml
         @pages.sort.each {|link|
           xml.url {
-            xml.loc URI.join(@base_url, link)
+            xml.loc URI.join(@base_url, link).to_s
             # TODO - set changefreq dynamically per page
             xml.changefreq @change_frequency unless @change_frequency.nil?
+            xml.lastmod @page_times[link] unless @page_times[link].nil?
           }
         }
       }
@@ -77,29 +133,25 @@ module SitemapGenerator
       xml_file.close
     end
 
-    # uses Hpricot to grab links from a URI
-    # adds uri to @pages_crawled
-    # loops each link found
-    # adds link to pages array if it should be included, unless it already exists
-    def crawl_for_links(link_path)
-      if link_path.include?('http')
-        return unless link_path.include?(@base_url)
-        link_path.sub!(@base_url,'')
+    def ping_search_engines
+      require 'open-uri'
+      if @gzip_output
+        url = URI.join(@base_url,'sitemap.xml.gz').to_s
+      else
+        url = URI.join(@base_url,'sitemap.xml').to_s
       end
-      file_path = resolve_file_path(File.join(@public_root, link_path))
+      index_location = CGI.escape(url)
 
-      if file_path.nil?
-        puts "Warning: Unable to resolve #{link_path} to a local file"
-        return
-      end
-
-      puts "Inspecting #{file_path}...\n"
-      doc = Hpricot(open(file_path)) rescue nil
-      return unless doc
-      @pages_crawled << link_path
-      (doc/"a").each do |a|
-        if a['href'] && should_be_included?(a['href'])
-          @pages << a['href'] unless(link_exists?(a['href'],@pages))
+      # engines list from http://en.wikipedia.org/wiki/Sitemap_index
+      {:google => "http://www.google.com/webmasters/sitemaps/ping?sitemap=#{index_location}",
+        :ask => "http://submissions.ask.com/ping?sitemap=#{index_location}",
+        :bing => "http://www.bing.com/webmaster/ping.aspx?siteMap=#{index_location}",
+        :sitemap_writer => "http://www.sitemapwriter.com/notify.php?crawler=all&url=#{index_location}"}.each do |engine, link|
+        begin
+          open(link)
+          puts "Successful ping of #{engine.to_s}" if verbose
+        rescue Timeout::Error, StandardError => e
+          puts "Ping failed for #{engine.to_s}: #{e.inspect}" if verbose
         end
       end
     end

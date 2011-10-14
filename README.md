@@ -13,7 +13,8 @@ To use, require the gem in your Rakefile and install the task with configuration
 
     SitemapGenerator::Tasks.install(
       :base_url => 'http://www.mysite.com', # Required
-      :change_frequency => 'daily, # Optional, see http://www.sitemaps.org/protocol.php#changefreqdef
+      :change_frequency => 'daily', # Optional, see http://www.sitemaps.org/protocol.php#changefreqdef
+      :date_mode => 'git' # Optional, one of 'git' or 'mtime'. default: nil (disabled)
       :gzip_output => true, # Optional, default: true
       :index_files => [ 'index.html' ], # Optional, default: [ 'index.html', 'index.htm' ]
       :public_root => 'public' # Optional, default: Dir.pwd
@@ -31,3 +32,4 @@ http://www.sitemaps.org/protocol.php
 Originally Authored by Chris Marting (http://chriscodes.com/articles/view/54)
 Updates by Tom Cocca
 Rewrite for static sites by Michael Leinartas
+ping_search_engines() lifted from http://github.com/adamsalter/sitemap_generator by Adam Salter
