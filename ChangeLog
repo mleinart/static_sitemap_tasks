@@ -1,3 +1,6 @@
+v0.4
+ * Fix date parsing in git mode
+
 v0.3
  * Filter git's iso times through ruby's Time to make it W3C DATETIME compliant
 
