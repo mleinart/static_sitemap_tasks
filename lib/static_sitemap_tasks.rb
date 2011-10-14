@@ -82,7 +82,7 @@ module SitemapGenerator
         raw_date = %x[git log -n 1 --date=iso --format="%ad" #{file}]
         raw_date.strip!()
         # we need ISO with no spaces
-        Time.new(raw_date).iso8601 rescue nil
+        Time.parse(raw_date).iso8601 rescue nil
       when 'mtime'
         mtime = File.mtime(file) rescue nil
         mtime.iso8601 if mtime
