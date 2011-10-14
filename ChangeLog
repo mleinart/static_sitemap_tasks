@@ -1,3 +1,6 @@
+v0.3
+ * Filter git's iso times through ruby's Time to make it W3C DATETIME compliant
+
 v0.2
  * Namespace tasks with :sitemap
  * Add ping task from http://github.com/adamsalter/sitemap_generator

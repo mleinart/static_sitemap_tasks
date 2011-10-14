@@ -3,7 +3,7 @@ $:.push File.expand_path("../lib", __FILE__)
 
 Gem::Specification.new do |s|
   s.name        = "static_sitemap_tasks"
-  s.version     = "0.2"
+  s.version     = "0.3"
   s.platform    = Gem::Platform::RUBY
   s.summary     = 'Rake tasks to manage sitemap.xml generation for static sites'
   s.description = 'Rake tasks to manage sitemap.xml generation for static sites'
